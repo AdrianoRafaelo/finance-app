@@ -2,11 +2,7 @@ import { supabase } from "@/lib/supabaseClient"
 import TransactionItem from "@/components/TransactionItem"
 import Chart from "@/components/Chart"
 
-export default async function Dashboard({
-  searchParams,
-}: {
-  searchParams?: { month?: string }
-}) {
+export default async function Dashboard({ searchParams }: any) {
   // ✅ default bulan
   const currentMonth = new Date().toISOString().slice(0, 7)
   const month = searchParams?.month || currentMonth

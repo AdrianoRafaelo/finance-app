@@ -8,10 +8,9 @@ export default function Navbar() {
       <p className="font-bold">Finance</p>
 
       <div className="flex gap-4 text-sm">
-        <Link href="/dashboard">🏠</Link>
-        <Link href="/add-transaction">➕</Link>
+        <Link href="/dashboard">🏠dashboard</Link>
+        <Link href="/add-transaction">➕add transaction</Link>
       </div>
     </div>
   )
 }
-``

@@ -1,4 +1,5 @@
 import "./globals.css"
+import Navbar from "@/components/navbar"
 
 export const metadata = {
   title: "Finance App",
@@ -17,8 +18,10 @@ export default function RootLayout({
         <meta name="theme-color" content="#3b82f6" />
         <link rel="icon" href="/icon-192.png" />
       </head>
-      <body>{children}</body>
+      <body>
+        <Navbar />
+        {children}
+      </body>
     </html>
   )
 }
-``

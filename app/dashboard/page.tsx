@@ -47,7 +47,7 @@ export default async function Dashboard({ searchParams }: any) {
     .reduce((acc, t) => acc + t.amount, 0)
 
   return (
-    <div className="p-4 sm:p-6 max-w-xl mx-auto">
+    <div className="p-4 max-w-md mx-auto mt-16">
       <h1 className="text-2xl font-bold mb-4">
         Dashboard
       </h1>

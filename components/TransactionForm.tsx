@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { addTransaction } from "@/lib/transactions"
 import { useRouter } from "next/navigation"
+import { detectCategory } from "@/lib/category"
 
 export default function TransactionForm() {
   const router = useRouter()
@@ -18,7 +19,7 @@ export default function TransactionForm() {
     await addTransaction({
       amount: Number(amount),
       type: type as any,
-      category,
+      category: category || detectCategory(note, type),
       note,
     })
 

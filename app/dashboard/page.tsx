@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { supabase } from "@/lib/supabaseClient"
 import Chart from "@/components/Chart"
+import UserGreeting from "@/components/UserGreeting"
 
 const CATEGORY_META: Record<string, { label: string; icon: string; bg: string; fg: string }> = {
   keluarga: { label: "Keluarga", icon: "👨‍👩‍👧", bg: "from-violet-100 to-purple-100", fg: "text-violet-700" },
@@ -40,6 +41,21 @@ function formatMonth(month: string, offset: number) {
 function getCurrentMonth() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+}
+
+function getGreeting() {
+  const now = new Date()
+  const hour = now.getHours()
+  if (hour >= 4 && hour < 12) {
+    return "selamat pagi"
+  }
+  if (hour >= 12 && hour < 15) {
+    return "selamat siang"
+  }
+  if (hour >= 15 && hour < 18) {
+    return "selamat sore"
+  }
+  return "selamat malam"
 }
 
 function isValidMonth(month: unknown): month is string {
@@ -122,53 +138,69 @@ export default async function DashboardPage({ searchParams }: any) {
   const prevMonth = formatMonth(month, -1)
   const nextMonth = formatMonth(month, 1)
 
+  const [prevYear, prevMonthNum] = prevMonth.split("-")
+  const prevStart = `${prevMonth}-01`
+  const prevEndDate = new Date(Number(prevYear), Number(prevMonthNum), 0)
+  const prevLastDay = String(prevEndDate.getDate()).padStart(2, "0")
+  const prevEnd = `${prevMonth}-${prevLastDay}`
+
+  const { data: prevData } = await supabase
+    .from("transactions")
+    .select("*")
+    .gte("created_at", prevStart)
+    .lte("created_at", prevEnd)
+
+  const prevTransactions = prevData ?? []
+  const prevTotal = prevTransactions.reduce((acc, item) => {
+    return item.type === "income" ? acc + item.amount : acc - item.amount
+  }, 0)
+
+  const savingsChange = prevTotal === 0 ? (total === 0 ? 0 : 100) : ((total - prevTotal) / Math.abs(prevTotal)) * 100
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-10 pt-28">
+    <div className="min-h-screen bg-slate-50 pb-24 pt-10">
       <div className="mx-auto w-full max-w-md px-4">
-        <div className="rounded-[32px] border border-slate-200 bg-white px-6 py-6 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Saldo keseluruhan</p>
-          <div className="mt-4 flex items-start justify-between gap-3">
-            <div>
-              <p className="text-4xl font-semibold tracking-tight text-slate-900">
-                Rp {formatCurrency(total)}
-              </p>
+        <div className="overflow-hidden rounded-[32px] bg-gradient-to-br from-sky-600 via-sky-500 to-cyan-500 p-6 shadow-xl text-white">
+          <div className="flex items-start justify-between gap-4">
+            <UserGreeting />
+            <div className="flex items-center gap-3">
+              <button className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/20 text-white transition hover:bg-white/30">
+                🔍
+              </button>
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-sm font-semibold uppercase text-white">
+                {"A"}
+              </div>
             </div>
-            <button className="rounded-2xl border border-slate-200 bg-slate-100 px-3 py-2 text-slate-600 transition hover:bg-slate-200">
-              <Link href="/add-transaction">✏️</Link>
-            </button>
           </div>
 
-          <div className="mt-6 grid grid-cols-[auto_1fr_auto] items-center gap-3 text-sm text-slate-600">
-            <Link
-              href={`/dashboard?month=${prevMonth}${selectedCategory !== "all" ? `&category=${encodeURIComponent(selectedCategory)}` : ""}`}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200"
-            >
-              ←
-            </Link>
-
-            <div>
-              <div className="text-center font-medium text-slate-900">{new Date(`${month}-01`).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</div>
+          <div className="mt-6 rounded-[28px] bg-white/10 p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-white/75">Saldo bulan ini</p>
+            <p className="mt-3 text-4xl font-semibold tracking-tight">Rp {formatCurrency(total)}</p>
+            <div className="mt-3 flex items-center justify-between gap-3 text-sm text-white/80">
+              <span>{new Date(`${month}-01`).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</span>
+              <span className="rounded-3xl bg-white/15 px-3 py-1">Tabungan {savingsChange >= 0 ? "naik" : "turun"} {Math.abs(savingsChange).toFixed(1)}%</span>
             </div>
 
-            <Link
-              href={`/dashboard?month=${nextMonth}${selectedCategory !== "all" ? `&category=${encodeURIComponent(selectedCategory)}` : ""}`}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200"
-            >
-              →
-            </Link>
+      
           </div>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-3xl bg-white/10 p-4 shadow-inner border border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 text-red-100">-</span>
+                  <p className="text-sm md:text-base font-medium text-white/80">Keluar</p>
+                </div>
+                <p className="mt-3 text-lg sm:text-xl font-semibold text-white">Rp {formatCurrency(expense)}</p>
+              </div>
+              <div className="rounded-3xl bg-white/10 p-4 shadow-inner border border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-100">+</span>
+                  <p className="text-sm md:text-base font-medium text-white/80">Masuk</p>
+                </div>
+                <p className="mt-3 text-lg sm:text-xl font-semibold text-white">Rp {formatCurrency(income)}</p>
+              </div>
+            </div>
         </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="rounded-3xl border border-slate-200 bg-red-50 p-4 shadow-sm">
-            <p className="text-sm font-medium text-red-600">Pengeluaran</p>
-            <p className="mt-2 text-2xl font-semibold text-red-600">Rp {formatCurrency(expense)}</p>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-emerald-50 p-4 shadow-sm">
-            <p className="text-sm font-medium text-emerald-700">Pendapatan</p>
-            <p className="mt-2 text-2xl font-semibold text-emerald-700">Rp {formatCurrency(income)}</p>
-          </div>
-        </div>
+        
 
         <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <Chart transactions={transactions} month={month} />

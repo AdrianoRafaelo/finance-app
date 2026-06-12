@@ -19,8 +19,10 @@ export default function RootLayout({
         <link rel="icon" href="/icon-192.png" />
       </head>
       <body>
+        <div className="pb-24">
+          {children}
+        </div>
         <Navbar />
-        {children}
       </body>
     </html>
   )

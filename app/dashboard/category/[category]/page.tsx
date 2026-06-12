@@ -40,7 +40,7 @@ export default async function CategoryDetail({ params, searchParams }: any) {
   const total = transactions.reduce((acc: number, t: any) => (t.type === "income" ? acc + t.amount : acc - t.amount), 0)
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-10 pt-28">
+    <div className="min-h-screen bg-slate-50 pb-24 pt-10">
       <div className="mx-auto w-full max-w-md px-4">
         <div className="rounded-[32px] border border-slate-200 bg-white px-6 py-6 shadow-sm">
           <div className="flex items-center justify-between">

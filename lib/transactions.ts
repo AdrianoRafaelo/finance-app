@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'
+﻿import { supabase } from './supabaseClient'
 import { Transaction } from '@/types/transaction'
 
 export async function getTransactions() {
@@ -21,6 +21,30 @@ export async function addTransaction(transaction: Transaction) {
     .insert([transaction])
 
   if (error) console.error(error)
+}
+
+export async function updateTransaction(id: string, transaction: Partial<Transaction>) {
+  const { error } = await supabase
+    .from('transactions')
+    .update(transaction)
+    .eq('id', id)
+
+  if (error) console.error(error)
+}
+
+export async function getTransactionById(id: string) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    console.error(error)
+    return null
+  }
+
+  return data
 }
 
 export async function deleteTransaction(id: string) {

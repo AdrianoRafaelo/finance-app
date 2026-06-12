@@ -12,9 +12,8 @@ import {
 } from "recharts"
 
 // Chart mingguan: mengagregasi per-minggu (Senin sebagai awal minggu)
-export default function Chart({ transactions }: any) {
+export default function Chart({ transactions, month }: any) {
   const transactionsArr: any[] = transactions ?? []
-  const WEEKS = 12
 
   const getMondayKey = (dateInput: string | Date) => {
     const d = typeof dateInput === "string" ? new Date(dateInput) : new Date(dateInput)
@@ -27,16 +26,35 @@ export default function Chart({ transactions }: any) {
   }
 
   const weeks = useMemo(() => {
-    const today = new Date()
-    const currentMonday = new Date(getMondayKey(today))
     const arr: string[] = []
-    for (let i = WEEKS - 1; i >= 0; i--) {
-      const d = new Date(currentMonday)
-      d.setDate(currentMonday.getDate() - i * 7)
-      arr.push(d.toISOString().slice(0, 10))
+
+    if (month && typeof month === "string" && /^\d{4}-\d{2}$/.test(month)) {
+      const [y, m] = month.split("-").map(Number)
+      const first = new Date(y, m - 1, 1)
+      const last = new Date(y, m, 0)
+
+      let current = new Date(getMondayKey(first))
+      while (current <= last) {
+        arr.push(current.toISOString().slice(0, 10))
+        current = new Date(current)
+        current.setDate(current.getDate() + 7)
+      }
+      // ensure at least one week
+      if (arr.length === 0) arr.push(getMondayKey(first))
+    } else {
+      // fallback: last 12 weeks ending this week
+      const WEEKS = 12
+      const today = new Date()
+      const currentMonday = new Date(getMondayKey(today))
+      for (let i = WEEKS - 1; i >= 0; i--) {
+        const d = new Date(currentMonday)
+        d.setDate(currentMonday.getDate() - i * 7)
+        arr.push(d.toISOString().slice(0, 10))
+      }
     }
+
     return arr
-  }, [transactionsArr])
+  }, [transactionsArr, month])
 
   const grouped = useMemo(() => {
     const g: Record<string, { income: number; expense: number }> = {}

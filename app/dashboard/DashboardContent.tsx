@@ -1,4 +1,4 @@
-﻿export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic"
 
 import Link from "next/link"
 import { supabase } from "@/lib/supabaseClient"
@@ -46,24 +46,15 @@ function isValidMonth(month: unknown): month is string {
   return typeof month === "string" && /^\d{4}-\d{2}$/.test(month)
 }
 
-function getSearchParam(searchParams: any, key: string) {
-  if (!searchParams) return undefined
-  if (typeof searchParams.get === "function") {
-    return searchParams.get(key) ?? undefined
-  }
-  const value = searchParams[key]
-  if (typeof value === "string") return value
-  if (Array.isArray(value) && value.length > 0) return value[0]
-  return undefined
+interface DashboardContentProps {
+  month?: string
+  category?: string
 }
 
-export default async function DashboardPage({ searchParams }: any) {
-  const resolvedSearchParams = await searchParams
-  const monthParam = getSearchParam(resolvedSearchParams, "month")
-  const categoryParam = getSearchParam(resolvedSearchParams, "category")
+export default async function DashboardContent({ month: monthProp, category: categoryProp }: DashboardContentProps) {
   const currentMonth = getCurrentMonth()
-  const month = isValidMonth(monthParam) ? monthParam : currentMonth
-  const selectedCategory = String(categoryParam || "all").toLowerCase().trim()
+  const month = isValidMonth(monthProp) ? monthProp : currentMonth
+  const selectedCategory = String(categoryProp || "all").toLowerCase().trim()
 
   const [year, monthNum] = month.split("-")
   const start = `${month}-01`
@@ -71,6 +62,7 @@ export default async function DashboardPage({ searchParams }: any) {
   const lastDay = String(endDate.getDate()).padStart(2, "0")
   const end = `${month}-${lastDay}`
 
+  const { data: allData } = await supabase.from("transactions").select("*")
   const { data } = await supabase
     .from("transactions")
     .select("*")
@@ -79,6 +71,12 @@ export default async function DashboardPage({ searchParams }: any) {
     .order("created_at", { ascending: false })
 
   const transactions = data ?? []
+  const allTransactions = allData ?? []
+  const filteredTransactions =
+    selectedCategory === "all"
+      ? transactions
+      : transactions.filter((t) => t.category.toLowerCase().trim() === selectedCategory)
+
   const total = transactions.reduce((acc, item) => {
     return item.type === "income" ? acc + item.amount : acc - item.amount
   }, 0)
@@ -119,6 +117,7 @@ export default async function DashboardPage({ searchParams }: any) {
     })
     .sort((a, b) => b.amount - a.amount)
 
+  const showCategorySummary = selectedCategory === "all"
   const prevMonth = formatMonth(month, -1)
   const nextMonth = formatMonth(month, 1)
 
@@ -148,6 +147,7 @@ export default async function DashboardPage({ searchParams }: any) {
 
             <div>
               <div className="text-center font-medium text-slate-900">{new Date(`${month}-01`).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</div>
+              <div className="text-center text-xs text-slate-400">query month: {monthProp ?? "(none)"} | used: {month}</div>
             </div>
 
             <Link
@@ -174,32 +174,36 @@ export default async function DashboardPage({ searchParams }: any) {
           <Chart transactions={transactions} month={month} />
         </div>
 
-        {categorySummary.length === 0 ? (
-          <div className="mt-5 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-500">
-            Tidak ada transaksi pada bulan ini.
-          </div>
-        ) : (
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            {categorySummary.map(({ category, amount, type }) => {
-              const meta = getCategoryMeta(category)
-              const isActive = selectedCategory === category
-              return (
-                <Link
-                  key={category}
-                  href={`/dashboard/category/${encodeURIComponent(category.toLowerCase().trim())}?month=${month}`}
-                  className={`rounded-3xl border p-4 shadow-sm transition hover:shadow-md ${isActive ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-gradient-to-br"} ${isActive ? "text-blue-700" : meta.bg}`}
-                >
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    <span className={type === "income" ? "text-emerald-600" : "text-red-600"}>
-                      {type}
-                    </span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                    <span className="text-slate-400">{meta.label}</span>
-                  </div>
-                  <p className="mt-4 text-base font-semibold text-slate-900">Rp {formatCurrency(amount)}</p>
-                </Link>
-              )
-            })}
+        {showCategorySummary && (
+          <div className="mt-5 grid gap-3">
+            {categorySummary.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-500">
+                Tidak ada transaksi pada bulan ini.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {categorySummary.map(({ category, amount, type }) => {
+                  const meta = getCategoryMeta(category)
+                  const isActive = selectedCategory === category
+                  return (
+                    <Link
+                      key={category}
+                      href={`/dashboard/category/${encodeURIComponent(category.toLowerCase().trim())}?month=${month}`}
+                      className={`rounded-3xl border p-4 shadow-sm transition hover:shadow-md ${isActive ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-gradient-to-br"} ${isActive ? "text-blue-700" : meta.bg}`}
+                    >
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                        <span className={type === "income" ? "text-emerald-600" : "text-red-600"}>
+                          {type}
+                        </span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                        <span className="text-slate-400">{meta.label}</span>
+                      </div>
+                      <p className="mt-4 text-base font-semibold text-slate-900">Rp {formatCurrency(amount)}</p>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

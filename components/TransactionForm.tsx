@@ -1,27 +1,39 @@
 "use client"
 
 import { useState } from "react"
-import { addTransaction } from "@/lib/transactions"
+import { addTransaction, updateTransaction } from "@/lib/transactions"
 import { useRouter } from "next/navigation"
 import { detectCategory } from "@/lib/category"
+import { Transaction } from "@/types/transaction"
 
-export default function TransactionForm() {
+interface TransactionFormProps {
+  transaction?: Transaction
+  transactionId?: string
+}
+
+export default function TransactionForm({ transaction, transactionId }: TransactionFormProps) {
   const router = useRouter()
 
-  const [amount, setAmount] = useState("")
-  const [type, setType] = useState("expense")
-  const [category, setCategory] = useState("")
-  const [note, setNote] = useState("")
+  const [amount, setAmount] = useState(transaction?.amount?.toString() ?? "")
+  const [type, setType] = useState(transaction?.type ?? "expense")
+  const [category, setCategory] = useState(transaction?.category ?? "")
+  const [note, setNote] = useState(transaction?.note ?? "")
 
   const handleSubmit = async (e: any) => {
     e.preventDefault()
 
-    await addTransaction({
+    const values = {
       amount: Number(amount),
       type: type as any,
       category: category || detectCategory(note, type),
       note,
-    })
+    }
+
+    if (transactionId) {
+      await updateTransaction(transactionId, values)
+    } else {
+      await addTransaction(values)
+    }
 
     router.push("/dashboard")
     router.refresh()
@@ -97,7 +109,7 @@ export default function TransactionForm() {
           type="submit"
           className="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold shadow"
         >
-          Simpan
+          {transactionId ? "Update" : "Simpan"}
         </button>
       </form>
     </div>
